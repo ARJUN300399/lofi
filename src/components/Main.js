@@ -80,7 +80,7 @@ export default function Main(){
 
     return(
      <div className="main" onDoubleClick={NextSong} onClick={PlayPause} style={myStyle} >
-         <i className="fa fa-github icon faa-horizontal animated " style={Style}></i> 
+         <a href="https://github.com/ARJUN300399/lofi"><i  className="fa fa-github icon faa-horizontal animated " style={Style}></i> </a>
          <div className="overlay"></div>
          <audio onEnded={NextSong} src={currentSong.url} ref={audioElm}/>
          <div className="glass-container">
