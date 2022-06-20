@@ -86,10 +86,10 @@ export default function Main(){
          <div className="glass-container">
          <div className="container ">
           <div className="text">
-             <p>{isPlaying?"":"DOUBLE TAP:CHANGE SONG"}</p>
+             <p>{isPlaying?"":"Happy Journey"}</p>
           </div>
           <div className="text">
-             <p>{isPlaying?currentSong.name:"SINGLE TAP:PLAY/PAUSE"}</p>
+             <p>{isPlaying?currentSong.name:"Gaurav Bhai ❤️️"}</p>
           </div>
          </div>
          </div>
