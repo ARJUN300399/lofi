@@ -33,13 +33,13 @@ export default function Main(){
                 return new Promise(function(resolve,reject){
                     const img = new Image();
                     img.src=src;
-                    img.onload = resolve();
-                    img.onerror = reject();
+                    img.onload = resolve;
+                    img.onerror = reject;
                     console.log(src)
                 });
             }
         );
-          Promise.all(promises);
+          await Promise.all(promises);
          setIsLoading(false)
     }
 
