@@ -110,7 +110,7 @@ const songData = {
         },
         {
             "id":"019",
-            "name":"Jo Bheji thi dua...",
+            "name":"Jo Bheji Thi Dua...",
             "url":"https://github.com/ARJUN300399/hello-world/blob/master/Jo%20Bheji%20Thi%20Dua%20Lofi%20remake.mp3?raw=true"
             
         },
