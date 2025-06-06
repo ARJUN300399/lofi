@@ -3,14 +3,27 @@ import songData from "../songData";
 import gifsData from "../gifsData";
 import Spinner from "./spinner";
 
+function toRawUrl(url){
+    return url
+        .replace("https://github.com/", "https://raw.githubusercontent.com/")
+        .replace("/blob/", "/");
+}
+
 export default function Main(){
     
     
-    const [songs, setSongs]= React.useState(songData.songs);
-    const [gif, setGif] = React.useState(gifsData.gifs[Math.floor(Math.random() * 5)]);
-    const [isLoading, setIsLoading]= React.useState(true);
+    const [songs, setSongs] = React.useState(
+        songData.songs.map(s => ({ ...s, url: toRawUrl(s.url) }))
+    );
+    const [gif, setGif] = React.useState(
+        gifsData.gifs[Math.floor(Math.random() * 5)]
+    );
+    const [isLoading, setIsLoading] = React.useState(true);
     const [isPlaying, setIsPlaying] = React.useState(0);
-    const [currentSong, setCurrentSong] = React.useState(songData.songs[Math.floor(Math.random() * 30)]);
+    const [currentSong, setCurrentSong] = React.useState(() => {
+        const s = songData.songs[Math.floor(Math.random() * 30)];
+        return { ...s, url: toRawUrl(s.url) };
+    });
     const audioElm = React.useRef();
     const songArray = songs
     const gifsArray =  gifsData.gifs
@@ -53,7 +66,7 @@ export default function Main(){
         const randomNumber = Math.floor(Math.random() * songArray.length)
         const randomNumberGif = Math.floor(Math.random() * gifsArray.length)
         const newName = songArray[randomNumber].name;
-        const newUrl = songArray[randomNumber].url
+        const newUrl = toRawUrl(songArray[randomNumber].url);
         setCurrentSong(prevSong =>({
             ...prevSong,
             name:newName,
