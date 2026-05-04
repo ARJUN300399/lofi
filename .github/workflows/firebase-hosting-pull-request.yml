@@ -32,9 +32,19 @@ jobs:
             exit 1
           fi
 
-      - name: Deploy to Firebase Hosting
+      - name: Deploy preview to Firebase Hosting
+        if: github.event_name == 'pull_request'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PUFF_STUFF }}'
           projectId: puff-stuff
+
+      - name: Deploy live to Firebase Hosting
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PUFF_STUFF }}'
+          projectId: puff-stuff
+          channelId: live

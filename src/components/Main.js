@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import songData from "../songData";
 import gifsData from "../gifsData";
-import Spinner from "./spinner";
 
 function toRawUrl(url){
     return url
@@ -10,37 +9,66 @@ function toRawUrl(url){
 }
 
 export default function Main(){
-    
-    
-    const [songs, setSongs] = React.useState(
+    const songs = React.useMemo(
+        () =>
         songData.songs.map(s => ({ ...s, url: toRawUrl(s.url) }))
+        ,[]
     );
+    const pickSong = React.useCallback((excludeUrl) => {
+        const randomNumber = Math.floor(Math.random() * songs.length);
+        const song = songs[randomNumber];
+
+        return song.url === excludeUrl
+            ? songs[(randomNumber + 1) % songs.length]
+            : song;
+    }, [songs]);
     const [gif, setGif] = React.useState(
-        gifsData.gifs[Math.floor(Math.random() * 5)]
+        () => gifsData.gifs[Math.floor(Math.random() * gifsData.gifs.length)]
     );
-    const [isLoading, setIsLoading] = React.useState(true);
-    const [isPlaying, setIsPlaying] = React.useState(0);
-    const [currentSong, setCurrentSong] = React.useState(() => {
-        const s = songData.songs[Math.floor(Math.random() * 30)];
-        return { ...s, url: toRawUrl(s.url) };
-    });
+    const [isPlaying, setIsPlaying] = React.useState(false);
+    const [isBuffering, setIsBuffering] = React.useState(false);
+    const [currentSong, setCurrentSong] = React.useState(() => pickSong());
+    const [queuedSong, setQueuedSong] = React.useState(() => pickSong(currentSong.url));
     const audioElm = React.useRef();
-    const songArray = songs
-    const gifsArray =  gifsData.gifs
-    const gifsUrl = gifsArray.map((g)=> g.url )
-      
+    const previousSongUrl = React.useRef(currentSong.url);
+    const gifsArray =  gifsData.gifs;
+    const gifsUrl = React.useMemo(() => gifsArray.map((g)=> g.url ), [gifsArray]);
  
     React.useEffect(()=>{
+        if(!audioElm.current){
+            return;
+        }
+
+        if(previousSongUrl.current !== currentSong.url){
+            setIsBuffering(true);
+            audioElm.current.load();
+            previousSongUrl.current = currentSong.url;
+        }
+
         if(isPlaying){
-            audioElm.current.play();
+            audioElm.current.play().catch(() => setIsPlaying(false));
         }
         else{
             audioElm.current.pause();
-
         }
-    },[isPlaying])
+    },[currentSong.url, isPlaying])
+
+    React.useEffect(() => {
+        if(!queuedSong){
+            return;
+        }
+
+        const nextAudio = new Audio();
+        nextAudio.preload = "auto";
+        nextAudio.src = queuedSong.url;
+        nextAudio.load();
+
+        return () => {
+            nextAudio.src = "";
+        };
+    }, [queuedSong]);
+
     const cacheImages = async(srcArray)=>{
-        console.log(srcArray)
         const promises =  srcArray.map(
             (src)=>{
                 return new Promise(function(resolve,reject){
@@ -48,41 +76,39 @@ export default function Main(){
                     img.src=src;
                     img.onload = resolve;
                     img.onerror = reject;
-                    console.log(src)
                 });
             }
         );
-          await Promise.all(promises);
-         setIsLoading(false)
+        await Promise.all(promises);
     }
 
     React.useEffect(()=>{
-        const images = gifsUrl;
-        console.log(images)
-        cacheImages(images);
-    },[])
+        cacheImages(gifsUrl).catch(() => {});
+    },[gifsUrl])
 
-    const NextSong =()=>{
-        const randomNumber = Math.floor(Math.random() * songArray.length)
+    const nextSong =()=>{
         const randomNumberGif = Math.floor(Math.random() * gifsArray.length)
-        const newName = songArray[randomNumber].name;
-        const newUrl = toRawUrl(songArray[randomNumber].url);
-        setCurrentSong(prevSong =>({
-            ...prevSong,
-            name:newName,
-            url:newUrl
-        }))
-        setIsPlaying(isPlaying+1)
+        setCurrentSong(prevSong => {
+            const next = queuedSong && queuedSong.url !== prevSong.url
+                ? queuedSong
+                : pickSong(prevSong.url);
+
+            setQueuedSong(pickSong(next.url));
+            return next;
+        })
+        setIsPlaying(true)
         const newGifUrl = gifsArray[randomNumberGif].url
         setGif(prevGif =>({
             ...prevGif,
             url:newGifUrl
         }))
     }
-    const PlayPause=()=>{
-        setIsPlaying(!isPlaying)
+
+    const playPause=()=>{
+        setIsPlaying(prevIsPlaying => !prevIsPlaying)
     }
-    const url = 'url(" '+ gif.url+ '")'
+
+    const url = 'url("' + gif.url+ '")'
     const myStyle={
         backgroundImage:url
     }
@@ -92,22 +118,34 @@ export default function Main(){
 
 
     return(
-     <div className="main" onDoubleClick={NextSong} onClick={PlayPause} style={myStyle} >
+     <div className="main" style={myStyle} >
          <a href="https://github.com/ARJUN300399/lofi"><i  className="fa fa-github icon faa-horizontal animated " style={Style}></i> </a>
          <div className="overlay"></div>
-         <audio onEnded={NextSong} src={currentSong.url} ref={audioElm}/>
-         <div className="glass-container">
-         <div className="container ">
-          <div className="text">
-             <p>{isPlaying?"":"Happy Journey"}</p>
-          </div>
-          <div className="text">
-             <p>{isPlaying?currentSong.name:"Gaurav Bhai ❤️️"}</p>
-          </div>
-         </div>
+         <audio
+            onCanPlay={() => setIsBuffering(false)}
+            onEnded={nextSong}
+            onError={nextSong}
+            onLoadStart={() => setIsBuffering(true)}
+            onPlaying={() => setIsBuffering(false)}
+            onWaiting={() => setIsBuffering(true)}
+            preload="auto"
+            src={currentSong.url}
+            ref={audioElm}
+         />
+         <div className="glass-container player-panel">
+            <p className="kicker">Puff Stuff Radio</p>
+            <h1 className="song-title">{currentSong.name}</h1>
+            <p className="signal-text">{isBuffering ? "tuning signal..." : isPlaying ? "signal warm" : "tap play to tune in"}</p>
+            <div className="controls">
+                <button className="control-button primary" type="button" onClick={playPause} aria-label={isPlaying ? "Pause song" : "Play song"}>
+                    <i className={isPlaying ? "fa fa-pause" : "fa fa-play"}></i>
+                </button>
+                <button className="control-button secondary" type="button" onClick={nextSong} aria-label="Play next song">
+                    <i className="fa fa-step-forward"></i>
+                </button>
+            </div>
          </div>
      </div>
      
     )
 }
-
