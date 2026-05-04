@@ -8,16 +8,7 @@
     ],
     "headers": [
       {
-        "source": "/index.html",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "no-cache"
-          }
-        ]
-      },
-      {
-        "source": "/style.css",
+        "source": "**",
         "headers": [
           {
             "key": "Cache-Control",
