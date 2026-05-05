@@ -15,21 +15,35 @@ body {
   -moz-osx-font-smoothing: grayscale;
   width: 100%;
   height: 100%;
+  min-height: 100%;
   margin: 0;
   overflow: hidden;
-  position: absolute;
-  top: 0;
-  left: 0;
+  background: #080e16;
+}
+
+#root {
+  height: 100%;
+  min-height: 100%;
 }
 
 .main {
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
-  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 26px;
+  position: fixed;
+  inset: 0;
   background-image: url("https://i.gifer.com/77rr.gif");
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  isolation: isolate;
 }
 
 .overlay {
@@ -67,10 +81,9 @@ body {
 }
 
 .player-panel {
-  position: absolute;
-  left: 26px;
-  bottom: 26px;
-  width: min(360px, calc(100% - 52px));
+  position: relative;
+  width: min(360px, 100%);
+  max-width: calc(100vw - 52px);
   padding: 18px 18px 16px;
   color: #fff;
   font-family: "Balsamiq Sans", monospace;
@@ -155,9 +168,10 @@ body {
 }
 
 .icon {
-  margin-top: 30px;
-  margin-right: 30px;
+  margin-top: 24px;
+  margin-right: 24px;
   color: red;
+  font-size: 2.28rem;
   position: fixed;
   top: 0;
   right: 0;
@@ -176,20 +190,75 @@ body {
 }
 
 @media only screen and (max-width: 768px) {
+  .main {
+    justify-content: center;
+    padding:
+      calc(14px + env(safe-area-inset-top))
+      14px
+      calc(14px + env(safe-area-inset-bottom));
+  }
+
   .player-panel {
-    left: 16px;
-    bottom: 16px;
-    width: calc(100% - 32px);
-    padding: 16px;
+    width: min(390px, 100%);
+    max-width: 100%;
+    max-height: calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    padding: 14px;
+    overflow: hidden;
   }
 
   .song-title {
-    font-size: 1.24rem;
+    font-size: 1.08rem;
   }
 
   .control-button.primary {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .control-button.secondary {
+    width: 34px;
+    height: 34px;
+  }
+
+  .signal-text {
+    margin-bottom: 12px;
+    font-size: 0.7rem;
+  }
+
+  .icon {
+    margin-top: calc(14px + env(safe-area-inset-top));
+    margin-right: 14px;
+    font-size: 1.68rem;
+  }
+}
+
+@media only screen and (max-width: 380px) {
+  .player-panel {
+    padding: 12px;
+  }
+
+  .kicker {
+    margin-bottom: 5px;
+    font-size: 0.58rem;
+  }
+
+  .song-title {
+    font-size: 0.96rem;
+  }
+
+  .signal-text {
+    margin-top: 7px;
+  }
+}
+
+@media only screen and (max-height: 520px) {
+  .player-panel {
+    padding: 12px;
+  }
+
+  .kicker,
+  .signal-text {
+    display: none;
   }
 }
 
