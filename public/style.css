@@ -1,6 +1,8 @@
 :root {
   --clr-neon: rgb(15, 165, 235);
   --clr-bg: hsl(323 21% 16%);
+  --slide-duration: 460ms;
+  --slide-ease: cubic-bezier(0.22, 0.68, 0.22, 1);
 }
 
 *,
@@ -64,7 +66,40 @@ body {
   animation: signalSweep 7s steps(1) infinite;
 }
 
+.frame-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(8, 8, 16, 0.12), rgba(8, 8, 16, 0.64)),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 1px,
+      transparent 1px,
+      transparent 9px
+    ),
+    radial-gradient(circle at 22% 18%, rgba(0, 179, 255, 0.18), transparent 34%),
+    radial-gradient(circle at 78% 74%, rgba(255, 72, 96, 0.14), transparent 34%);
+  pointer-events: none;
+}
+
 .overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(143, 231, 255, 0.16) 48%,
+    transparent 54%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: translateY(-100%);
+  animation: scanLine 8s ease-in-out infinite;
+}
+
+.frame-overlay::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -93,6 +128,79 @@ body {
   box-shadow: 0 16px 46px rgba(0, 0, 0, 0.34);
   backdrop-filter: blur(14px) saturate(1.16);
   z-index: 2;
+}
+
+.main.is-sliding .live-panel {
+  opacity: 0;
+}
+
+.slide-transition {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+  pointer-events: none;
+  background: #080e16;
+}
+
+.slide-frame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 26px;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  will-change: transform;
+  animation-duration: var(--slide-duration);
+  animation-timing-function: var(--slide-ease);
+  animation-fill-mode: forwards;
+}
+
+.slide-frame-current {
+  z-index: 1;
+}
+
+.slide-frame-next {
+  z-index: 2;
+}
+
+.visual-panel {
+  pointer-events: none;
+}
+
+.slide-up .slide-frame-current {
+  animation-name: slideCurrentUp;
+}
+
+.slide-up .slide-frame-next {
+  animation-name: slideNextUp;
+}
+
+.slide-down .slide-frame-current {
+  animation-name: slideCurrentDown;
+}
+
+.slide-down .slide-frame-next {
+  animation-name: slideNextDown;
+}
+
+.slide-left .slide-frame-current {
+  animation-name: slideCurrentLeft;
+}
+
+.slide-left .slide-frame-next {
+  animation-name: slideNextLeft;
+}
+
+.slide-right .slide-frame-current {
+  animation-name: slideCurrentRight;
+}
+
+.slide-right .slide-frame-next {
+  animation-name: slideNextRight;
 }
 
 .kicker {
@@ -190,7 +298,8 @@ body {
 }
 
 @media only screen and (max-width: 768px) {
-  .main {
+  .main,
+  .slide-frame {
     justify-content: center;
     padding:
       calc(14px + env(safe-area-inset-top))
@@ -281,6 +390,86 @@ body {
   100% {
     opacity: 0;
     transform: translateY(100%);
+  }
+}
+
+@keyframes slideCurrentUp {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes slideNextUp {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideCurrentDown {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes slideNextDown {
+  from {
+    transform: translateY(-100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideCurrentLeft {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes slideNextLeft {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideCurrentRight {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes slideNextRight {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
   }
 }
 

@@ -2,6 +2,8 @@ import React from "react";
 import songData from "../songData";
 import gifsData from "../gifsData";
 
+const SLIDE_DURATION_MS = 460;
+
 function toRawUrl(url){
     return url
         .replace("https://github.com/", "https://raw.githubusercontent.com/")
@@ -34,8 +36,10 @@ export default function Main(){
     const previousSongUrl = React.useRef(currentSong.url);
     const songHistory = React.useRef([]);
     const swipeStart = React.useRef(null);
+    const slideTimer = React.useRef();
     const gif = gifsArray[gifIndex];
     const gifsUrl = React.useMemo(() => gifsArray.map((g)=> g.url ), [gifsArray]);
+    const [slide, setSlide] = React.useState(null);
  
     React.useEffect(()=>{
         if(!audioElm.current){
@@ -89,36 +93,63 @@ export default function Main(){
         cacheImages(gifsUrl).catch(() => {});
     },[gifsUrl])
 
-    const changeGif = React.useCallback((direction) => {
-        setGifIndex(prevIndex => (
-            prevIndex + direction + gifsArray.length
-        ) % gifsArray.length);
-    }, [gifsArray.length])
+    React.useEffect(() => {
+        return () => {
+            clearTimeout(slideTimer.current);
+        };
+    }, []);
+
+    const getNextGifIndex = React.useCallback((direction) => (
+        gifIndex + direction + gifsArray.length
+    ) % gifsArray.length, [gifIndex, gifsArray.length])
+
+    const startSlide = React.useCallback((direction, fromSong, toSong, fromGifIndex, toGifIndex) => {
+        clearTimeout(slideTimer.current);
+        setSlide({
+            direction,
+            fromSong,
+            toSong,
+            fromGif: gifsArray[fromGifIndex],
+            toGif: gifsArray[toGifIndex],
+            key: Date.now()
+        });
+        slideTimer.current = setTimeout(() => {
+            setSlide(null);
+        }, SLIDE_DURATION_MS);
+    }, [gifsArray])
 
     const nextSong = React.useCallback(() => {
-        setCurrentSong(prevSong => {
-            songHistory.current = [...songHistory.current, prevSong].slice(-24);
-            const next = queuedSong && queuedSong.url !== prevSong.url
-                ? queuedSong
-                : pickSong(prevSong.url);
+        const next = queuedSong && queuedSong.url !== currentSong.url
+            ? queuedSong
+            : pickSong(currentSong.url);
+        const nextGifIndex = getNextGifIndex(1);
 
-            setQueuedSong(pickSong(next.url));
-            return next;
-        })
-        changeGif(1)
+        songHistory.current = [...songHistory.current, currentSong].slice(-24);
+        startSlide("up", currentSong, next, gifIndex, nextGifIndex);
+        setCurrentSong(next);
+        setQueuedSong(pickSong(next.url));
+        setGifIndex(nextGifIndex);
         setIsPlaying(true)
-    }, [changeGif, pickSong, queuedSong])
+    }, [currentSong, getNextGifIndex, gifIndex, pickSong, queuedSong, startSlide])
 
     const previousSong = React.useCallback(() => {
-        setCurrentSong(prevSong => {
-            const previous = songHistory.current.pop() || pickSong(prevSong.url);
+        const previous = songHistory.current.pop() || pickSong(currentSong.url);
+        const nextGifIndex = getNextGifIndex(-1);
 
-            setQueuedSong(pickSong(previous.url));
-            return previous;
-        })
-        changeGif(-1)
+        startSlide("down", currentSong, previous, gifIndex, nextGifIndex);
+        setCurrentSong(previous);
+        setQueuedSong(pickSong(previous.url));
+        setGifIndex(nextGifIndex);
         setIsPlaying(true)
-    }, [changeGif, pickSong])
+    }, [currentSong, getNextGifIndex, gifIndex, pickSong, startSlide])
+
+    const changeGif = React.useCallback((direction) => {
+        const nextGifIndex = getNextGifIndex(direction);
+        const slideDirection = direction > 0 ? "left" : "right";
+
+        startSlide(slideDirection, currentSong, currentSong, gifIndex, nextGifIndex);
+        setGifIndex(nextGifIndex);
+    }, [currentSong, getNextGifIndex, gifIndex, startSlide])
 
     const playPause=()=>{
         setIsPlaying(prevIsPlaying => !prevIsPlaying)
@@ -177,10 +208,41 @@ export default function Main(){
         swipeStart.current = null;
     }
 
+    const renderPanel = (song, visualOnly = false) => (
+        <div
+            aria-hidden={visualOnly}
+            className={visualOnly ? "glass-container player-panel visual-panel" : "glass-container player-panel live-panel"}
+        >
+            <p className="kicker">Puff Stuff Radio</p>
+            <h1 className="song-title">{song.name}</h1>
+            <p className="signal-text">{isBuffering ? "tuning signal..." : isPlaying ? "signal warm" : "tap play to tune in"}</p>
+            <div className="controls">
+                <button
+                    className="control-button primary"
+                    type="button"
+                    onClick={visualOnly ? undefined : playPause}
+                    aria-label={isPlaying ? "Pause song" : "Play song"}
+                    tabIndex={visualOnly ? -1 : undefined}
+                >
+                    <i className={isPlaying ? "fa fa-pause" : "fa fa-play"}></i>
+                </button>
+                <button
+                    className="control-button secondary"
+                    type="button"
+                    onClick={visualOnly ? undefined : nextSong}
+                    aria-label="Play next song"
+                    tabIndex={visualOnly ? -1 : undefined}
+                >
+                    <i className="fa fa-step-forward"></i>
+                </button>
+            </div>
+        </div>
+    )
+
 
     return(
      <div
-        className="main"
+        className={slide ? "main is-sliding" : "main"}
         style={myStyle}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
@@ -199,19 +261,19 @@ export default function Main(){
             src={currentSong.url}
             ref={audioElm}
          />
-         <div className="glass-container player-panel">
-            <p className="kicker">Puff Stuff Radio</p>
-            <h1 className="song-title">{currentSong.name}</h1>
-            <p className="signal-text">{isBuffering ? "tuning signal..." : isPlaying ? "signal warm" : "tap play to tune in"}</p>
-            <div className="controls">
-                <button className="control-button primary" type="button" onClick={playPause} aria-label={isPlaying ? "Pause song" : "Play song"}>
-                    <i className={isPlaying ? "fa fa-pause" : "fa fa-play"}></i>
-                </button>
-                <button className="control-button secondary" type="button" onClick={nextSong} aria-label="Play next song">
-                    <i className="fa fa-step-forward"></i>
-                </button>
+         {renderPanel(currentSong)}
+         {slide && (
+            <div className={`slide-transition slide-${slide.direction}`} key={slide.key}>
+                <div className="slide-frame slide-frame-current" style={{ backgroundImage: `url("${slide.fromGif.url}")` }}>
+                    <div className="frame-overlay"></div>
+                    {renderPanel(slide.fromSong, true)}
+                </div>
+                <div className="slide-frame slide-frame-next" style={{ backgroundImage: `url("${slide.toGif.url}")` }}>
+                    <div className="frame-overlay"></div>
+                    {renderPanel(slide.toSong, true)}
+                </div>
             </div>
-         </div>
+         )}
      </div>
      
     )
