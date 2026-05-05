@@ -3,6 +3,27 @@ import songData from "../songData";
 import gifsData from "../gifsData";
 
 const SLIDE_DURATION_MS = 460;
+const CARD_GLOW_MS = 1400;
+const MOOD_TEXTS = [
+    "soft heart, loud dreams",
+    "you are doing better than you think",
+    "tiny steps, big glow",
+    "good mood loading...",
+    "breathe easy, vibe slowly",
+    "main character evening",
+    "chai, courage, repeat",
+    "a little magic is still magic",
+    "keep going, cutie",
+    "the night is on your side",
+    "low volume, high hopes",
+    "smile first, stress later",
+    "today still has sparkle",
+    "romanticize the pause",
+    "your energy is precious",
+    "floating through the feeling",
+    "heart warm, world softer",
+    "new song, new light"
+];
 
 function toRawUrl(url){
     return url
@@ -29,7 +50,7 @@ export default function Main(){
         () => Math.floor(Math.random() * gifsArray.length)
     );
     const [isPlaying, setIsPlaying] = React.useState(false);
-    const [isBuffering, setIsBuffering] = React.useState(false);
+    const [, setIsBuffering] = React.useState(false);
     const [currentSong, setCurrentSong] = React.useState(() => pickSong());
     const [queuedSong, setQueuedSong] = React.useState(() => pickSong(currentSong.url));
     const audioElm = React.useRef();
@@ -37,9 +58,15 @@ export default function Main(){
     const songHistory = React.useRef([]);
     const swipeStart = React.useRef(null);
     const slideTimer = React.useRef();
+    const cardGlowTimer = React.useRef();
     const gif = gifsArray[gifIndex];
     const gifsUrl = React.useMemo(() => gifsArray.map((g)=> g.url ), [gifsArray]);
     const [slide, setSlide] = React.useState(null);
+    const [moodIndex, setMoodIndex] = React.useState(
+        () => Math.floor(Math.random() * MOOD_TEXTS.length)
+    );
+    const [isCardLit, setIsCardLit] = React.useState(false);
+    const moodText = MOOD_TEXTS[moodIndex];
  
     React.useEffect(()=>{
         if(!audioElm.current){
@@ -96,6 +123,7 @@ export default function Main(){
     React.useEffect(() => {
         return () => {
             clearTimeout(slideTimer.current);
+            clearTimeout(cardGlowTimer.current);
         };
     }, []);
 
@@ -103,7 +131,11 @@ export default function Main(){
         gifIndex + direction + gifsArray.length
     ) % gifsArray.length, [gifIndex, gifsArray.length])
 
-    const startSlide = React.useCallback((direction, fromSong, toSong, fromGifIndex, toGifIndex) => {
+    const getNextMoodIndex = React.useCallback((direction) => (
+        moodIndex + direction + MOOD_TEXTS.length
+    ) % MOOD_TEXTS.length, [moodIndex])
+
+    const startSlide = React.useCallback((direction, fromSong, toSong, fromGifIndex, toGifIndex, fromMoodIndex, toMoodIndex) => {
         clearTimeout(slideTimer.current);
         setSlide({
             direction,
@@ -111,6 +143,8 @@ export default function Main(){
             toSong,
             fromGif: gifsArray[fromGifIndex],
             toGif: gifsArray[toGifIndex],
+            fromMoodText: MOOD_TEXTS[fromMoodIndex],
+            toMoodText: MOOD_TEXTS[toMoodIndex],
             key: Date.now()
         });
         slideTimer.current = setTimeout(() => {
@@ -118,38 +152,52 @@ export default function Main(){
         }, SLIDE_DURATION_MS);
     }, [gifsArray])
 
+    const lightCard = React.useCallback(() => {
+        clearTimeout(cardGlowTimer.current);
+        setIsCardLit(true);
+        cardGlowTimer.current = setTimeout(() => {
+            setIsCardLit(false);
+        }, CARD_GLOW_MS);
+    }, [])
+
     const nextSong = React.useCallback(() => {
         const next = queuedSong && queuedSong.url !== currentSong.url
             ? queuedSong
             : pickSong(currentSong.url);
         const nextGifIndex = getNextGifIndex(1);
+        const nextMoodIndex = getNextMoodIndex(1);
 
         songHistory.current = [...songHistory.current, currentSong].slice(-24);
-        startSlide("up", currentSong, next, gifIndex, nextGifIndex);
+        startSlide("up", currentSong, next, gifIndex, nextGifIndex, moodIndex, nextMoodIndex);
         setCurrentSong(next);
         setQueuedSong(pickSong(next.url));
         setGifIndex(nextGifIndex);
+        setMoodIndex(nextMoodIndex);
         setIsPlaying(true)
-    }, [currentSong, getNextGifIndex, gifIndex, pickSong, queuedSong, startSlide])
+    }, [currentSong, getNextGifIndex, getNextMoodIndex, gifIndex, moodIndex, pickSong, queuedSong, startSlide])
 
     const previousSong = React.useCallback(() => {
         const previous = songHistory.current.pop() || pickSong(currentSong.url);
         const nextGifIndex = getNextGifIndex(-1);
+        const nextMoodIndex = getNextMoodIndex(-1);
 
-        startSlide("down", currentSong, previous, gifIndex, nextGifIndex);
+        startSlide("down", currentSong, previous, gifIndex, nextGifIndex, moodIndex, nextMoodIndex);
         setCurrentSong(previous);
         setQueuedSong(pickSong(previous.url));
         setGifIndex(nextGifIndex);
+        setMoodIndex(nextMoodIndex);
         setIsPlaying(true)
-    }, [currentSong, getNextGifIndex, gifIndex, pickSong, startSlide])
+    }, [currentSong, getNextGifIndex, getNextMoodIndex, gifIndex, moodIndex, pickSong, startSlide])
 
     const changeGif = React.useCallback((direction) => {
         const nextGifIndex = getNextGifIndex(direction);
+        const nextMoodIndex = getNextMoodIndex(direction);
         const slideDirection = direction > 0 ? "left" : "right";
 
-        startSlide(slideDirection, currentSong, currentSong, gifIndex, nextGifIndex);
+        startSlide(slideDirection, currentSong, currentSong, gifIndex, nextGifIndex, moodIndex, nextMoodIndex);
         setGifIndex(nextGifIndex);
-    }, [currentSong, getNextGifIndex, gifIndex, startSlide])
+        setMoodIndex(nextMoodIndex);
+    }, [currentSong, getNextGifIndex, getNextMoodIndex, gifIndex, moodIndex, startSlide])
 
     const playPause=()=>{
         setIsPlaying(prevIsPlaying => !prevIsPlaying)
@@ -208,14 +256,17 @@ export default function Main(){
         swipeStart.current = null;
     }
 
-    const renderPanel = (song, visualOnly = false) => (
+    const renderPanel = (song, visualOnly = false, panelMoodText = moodText) => (
         <div
             aria-hidden={visualOnly}
-            className={visualOnly ? "glass-container player-panel visual-panel" : "glass-container player-panel live-panel"}
+            className={
+                `${visualOnly ? "glass-container player-panel visual-panel" : "glass-container player-panel live-panel"}${isCardLit && !visualOnly ? " is-lit" : ""}`
+            }
+            onPointerDown={visualOnly ? undefined : lightCard}
         >
             <p className="kicker">Puff Stuff Radio</p>
             <h1 className="song-title">{song.name}</h1>
-            <p className="signal-text">{isBuffering ? "tuning signal..." : isPlaying ? "signal warm" : "tap play to tune in"}</p>
+            <p className="signal-text">{panelMoodText}</p>
             <div className="controls">
                 <button
                     className="control-button primary"
@@ -266,11 +317,11 @@ export default function Main(){
             <div className={`slide-transition slide-${slide.direction}`} key={slide.key}>
                 <div className="slide-frame slide-frame-current" style={{ backgroundImage: `url("${slide.fromGif.url}")` }}>
                     <div className="frame-overlay"></div>
-                    {renderPanel(slide.fromSong, true)}
+                    {renderPanel(slide.fromSong, true, slide.fromMoodText)}
                 </div>
                 <div className="slide-frame slide-frame-next" style={{ backgroundImage: `url("${slide.toGif.url}")` }}>
                     <div className="frame-overlay"></div>
-                    {renderPanel(slide.toSong, true)}
+                    {renderPanel(slide.toSong, true, slide.toMoodText)}
                 </div>
             </div>
          )}

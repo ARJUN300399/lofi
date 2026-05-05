@@ -1,6 +1,7 @@
 :root {
   --clr-neon: rgb(15, 165, 235);
   --clr-bg: hsl(323 21% 16%);
+  --clr-glow: #8fe7ff;
   --slide-duration: 460ms;
   --slide-ease: cubic-bezier(0.22, 0.68, 0.22, 1);
 }
@@ -117,17 +118,71 @@ body {
 
 .player-panel {
   position: relative;
+  overflow: hidden;
+  isolation: isolate;
   width: min(360px, 100%);
   max-width: calc(100vw - 52px);
   padding: 18px 18px 16px;
   color: #fff;
   font-family: "Balsamiq Sans", monospace;
   background: rgba(8, 14, 22, 0.42);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(143, 231, 255, 0.2);
   border-radius: 8px;
   box-shadow: 0 16px 46px rgba(0, 0, 0, 0.34);
   backdrop-filter: blur(14px) saturate(1.16);
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+  animation: panelFuse 5.8s steps(1, end) infinite;
   z-index: 2;
+}
+
+.player-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(143, 231, 255, 0.08);
+  border-radius: inherit;
+  box-shadow: inset 0 0 14px rgba(143, 231, 255, 0.05);
+  pointer-events: none;
+  z-index: 0;
+  animation: innerFuse 5.8s steps(1, end) infinite;
+}
+
+.player-panel::after {
+  content: "";
+  position: absolute;
+  inset: -22px;
+  background: radial-gradient(circle at 30% 20%, rgba(143, 231, 255, 0.18), transparent 32%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  animation: haloFuse 5.8s steps(1, end) infinite;
+}
+
+.player-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.player-panel.is-lit {
+  background: rgba(8, 14, 22, 0.52);
+  border-color: rgba(143, 231, 255, 0.9);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.38),
+    0 0 22px rgba(143, 231, 255, 0.58),
+    0 0 46px rgba(143, 231, 255, 0.22);
+  animation: cardTouchGlow 1.4s ease-out forwards;
+}
+
+.player-panel.is-lit::before {
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow:
+    inset 0 0 18px rgba(143, 231, 255, 0.34),
+    inset 0 0 32px rgba(255, 79, 123, 0.12);
+}
+
+.player-panel.is-lit::after {
+  opacity: 1;
+  animation: none;
 }
 
 .main.is-sliding .live-panel {
@@ -211,6 +266,7 @@ body {
   letter-spacing: 0.14rem;
   text-transform: uppercase;
   opacity: 0.82;
+  animation: textFuse 5.8s steps(1, end) infinite;
 }
 
 .song-title {
@@ -222,14 +278,28 @@ body {
   text-shadow:
     0 0 14px rgba(0, 179, 255, 0.62),
     0 0 28px rgba(255, 79, 123, 0.18);
+  animation: textFuse 5.8s steps(1, end) infinite;
 }
 
 .signal-text {
   margin: 8px 0 15px;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(226, 250, 255, 0.72);
   font-family: monospace;
   font-size: 0.78rem;
   letter-spacing: 0.06rem;
+  text-transform: lowercase;
+  animation: textFuse 5.8s steps(1, end) infinite;
+}
+
+.player-panel.is-lit .kicker,
+.player-panel.is-lit .song-title,
+.player-panel.is-lit .signal-text {
+  color: #f7fdff;
+  text-shadow:
+    0 0 8px rgba(143, 231, 255, 0.86),
+    0 0 18px rgba(143, 231, 255, 0.5),
+    0 0 34px rgba(255, 79, 123, 0.2);
+  animation: textTouchGlow 1.4s ease-out forwards;
 }
 
 .controls {
@@ -248,6 +318,7 @@ body {
   cursor: pointer;
   transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
   backdrop-filter: blur(8px);
+  animation: buttonFuse 5.8s steps(1, end) infinite;
 }
 
 .control-button:hover {
@@ -263,7 +334,7 @@ body {
   height: 46px;
   font-size: 1rem;
   background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(143, 231, 255, 0.3);
   box-shadow: 0 0 18px rgba(0, 179, 255, 0.28);
 }
 
@@ -272,7 +343,15 @@ body {
   height: 38px;
   font-size: 0.86rem;
   background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(143, 231, 255, 0.2);
+}
+
+.player-panel.is-lit .control-button {
+  border-color: rgba(143, 231, 255, 0.9);
+  box-shadow:
+    0 0 15px rgba(143, 231, 255, 0.48),
+    inset 0 0 12px rgba(143, 231, 255, 0.12);
+  animation: buttonTouchGlow 1.4s ease-out forwards;
 }
 
 .icon {
@@ -368,6 +447,176 @@ body {
   .kicker,
   .signal-text {
     display: none;
+  }
+}
+
+@keyframes panelFuse {
+  0%,
+  6%,
+  8%,
+  44%,
+  47%,
+  100% {
+    border-color: rgba(143, 231, 255, 0.18);
+    box-shadow: 0 16px 46px rgba(0, 0, 0, 0.34);
+  }
+
+  7%,
+  46%,
+  62% {
+    border-color: rgba(143, 231, 255, 0.82);
+    box-shadow:
+      0 16px 46px rgba(0, 0, 0, 0.34),
+      0 0 18px rgba(143, 231, 255, 0.45),
+      0 0 38px rgba(143, 231, 255, 0.18);
+  }
+
+  63%,
+  66% {
+    border-color: rgba(255, 79, 123, 0.55);
+    box-shadow:
+      0 16px 46px rgba(0, 0, 0, 0.34),
+      0 0 18px rgba(255, 79, 123, 0.26);
+  }
+}
+
+@keyframes innerFuse {
+  0%,
+  6%,
+  8%,
+  44%,
+  47%,
+  100% {
+    border-color: rgba(143, 231, 255, 0.08);
+    box-shadow: inset 0 0 14px rgba(143, 231, 255, 0.05);
+  }
+
+  7%,
+  46%,
+  62% {
+    border-color: rgba(143, 231, 255, 0.45);
+    box-shadow:
+      inset 0 0 16px rgba(143, 231, 255, 0.22),
+      inset 0 0 28px rgba(255, 255, 255, 0.08);
+  }
+}
+
+@keyframes haloFuse {
+  0%,
+  6%,
+  8%,
+  44%,
+  47%,
+  100% {
+    opacity: 0;
+  }
+
+  7%,
+  46%,
+  62% {
+    opacity: 0.72;
+  }
+
+  63%,
+  66% {
+    opacity: 0.32;
+  }
+}
+
+@keyframes textFuse {
+  0%,
+  6%,
+  8%,
+  44%,
+  47%,
+  100% {
+    text-shadow: none;
+  }
+
+  7%,
+  46%,
+  62% {
+    text-shadow:
+      0 0 8px rgba(143, 231, 255, 0.78),
+      0 0 18px rgba(143, 231, 255, 0.38);
+  }
+
+  63%,
+  66% {
+    text-shadow:
+      0 0 7px rgba(255, 79, 123, 0.5),
+      0 0 14px rgba(255, 79, 123, 0.16);
+  }
+}
+
+@keyframes buttonFuse {
+  0%,
+  6%,
+  8%,
+  44%,
+  47%,
+  100% {
+    box-shadow: none;
+  }
+
+  7%,
+  46%,
+  62% {
+    box-shadow:
+      0 0 14px rgba(143, 231, 255, 0.36),
+      inset 0 0 10px rgba(143, 231, 255, 0.1);
+  }
+}
+
+@keyframes cardTouchGlow {
+  0%,
+  100% {
+    border-color: rgba(143, 231, 255, 0.92);
+    box-shadow:
+      0 18px 50px rgba(0, 0, 0, 0.38),
+      0 0 22px rgba(143, 231, 255, 0.58),
+      0 0 46px rgba(143, 231, 255, 0.22);
+  }
+
+  55% {
+    border-color: rgba(255, 255, 255, 0.95);
+    box-shadow:
+      0 18px 50px rgba(0, 0, 0, 0.38),
+      0 0 32px rgba(143, 231, 255, 0.82),
+      0 0 68px rgba(143, 231, 255, 0.36);
+  }
+}
+
+@keyframes textTouchGlow {
+  0%,
+  100% {
+    text-shadow:
+      0 0 8px rgba(143, 231, 255, 0.86),
+      0 0 18px rgba(143, 231, 255, 0.5),
+      0 0 34px rgba(255, 79, 123, 0.2);
+  }
+
+  55% {
+    text-shadow:
+      0 0 10px rgba(255, 255, 255, 0.96),
+      0 0 24px rgba(143, 231, 255, 0.78),
+      0 0 44px rgba(143, 231, 255, 0.32);
+  }
+}
+
+@keyframes buttonTouchGlow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 15px rgba(143, 231, 255, 0.48),
+      inset 0 0 12px rgba(143, 231, 255, 0.12);
+  }
+
+  55% {
+    box-shadow:
+      0 0 22px rgba(143, 231, 255, 0.72),
+      0 0 36px rgba(143, 231, 255, 0.26),
+      inset 0 0 14px rgba(255, 255, 255, 0.14);
   }
 }
 
